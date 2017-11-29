@@ -7,7 +7,6 @@ let accessToken;
 
 export let Spotify = {
   getAccessToken() {
-    console.log(`getAccessToken called... accessToken value is ${accessToken}`);
     if (accessToken) {
       return accessToken;
     } else if (window.location.href.match(/access_token=([^&]*)/)) {
@@ -20,7 +19,76 @@ export let Spotify = {
     }
   },
 
-  //NOTE: have I called .getAccessToken in the right place here?
+  savePlaylist(playlist, trackURIs) {
+    if (!playlist && !trackURIs) {
+      return;
+    }
+    let token = Spotify.getAccessToken();
+    let headers = {Authorization: `Bearer ${token}`};
+    let userID;
+    let playlistID;
+    fetch('https://api.spotify.com/v1/me', {headers: headers}).then(response => {
+      return response.json();
+    }).then(jsonResponse => {
+      userID = jsonResponse.id;
+      console.log(userID); //for debugging purposes
+      return userID;
+    }).then(userID => {
+      return fetch(`https://api.spotify.com/v1/users/${userID}/playlists`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        method: "POST",
+        body: JSON.stringify({name: playlist})
+      }).then(response => {
+        return response.json();
+      }).then(jsonResponse => {
+        playlistID = jsonResponse.id;
+        console.log("userID is: " + userID); //for debugging purposes
+        console.log("playlistID is: " + playlistID); //for debugging purposes
+        return playlistID;
+      }).then(playlistID => {
+        return fetch(`https://api.spotify.com/v1/users/${userID}/playlists/${playlistID}/tracks`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          method: 'POST',
+          body: JSON.stringify({uris: trackURIs})
+        })
+      })
+    });
+  },
+
+  //   fetch(`https://api.spotify.com/v1/users/${userID}/playlists`, {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //       'Content-Type': 'application/json'
+  //     },
+  //     method: 'POST',
+  //     body: JSON.stringify({
+  //       name: playlist,
+  //       public: false
+  //     })
+  //   }).then(response => {
+  //     return response.json();
+  //   }).then(jsonResponse => {
+  //     playlistID = jsonResponse.id;
+  //     return playlistID;
+  //   });
+  //   fetch(`https://api.spotify.com/v1/users/${userID}/playlists/${playlistID}/tracks`, {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //       'Content-Type': 'application/json'
+  //     },
+  //     method: 'POST',
+  //     body: JSON.stringify({uris: trackURIs})
+  //   }).then(response => {
+  //     return response.json();
+  //   }).then(jsonResponse => {jsonResponse}); //not sure about this spot
+  // },
+
   search(term) {
     Spotify.getAccessToken();
     return fetch(`https://api.spotify.com/v1/search?type=track&q=${term}`, {
